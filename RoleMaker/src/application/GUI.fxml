@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<AnchorPane prefHeight="600.0" prefWidth="900.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8">
+   <children>
+      <ScrollPane fx:id="scrollH" hbarPolicy="NEVER" layoutX="-18.0" layoutY="-86.0" prefHeight="30.0" prefWidth="200.0" vbarPolicy="NEVER" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <content>
+          <AnchorPane fx:id="rulerH" minHeight="0.0" minWidth="0.0" prefHeight="30.0" prefWidth="200.0" />
+        </content>
+      </ScrollPane>
+      <ScrollPane fx:id="scrollV" hbarPolicy="NEVER" layoutX="-86.0" layoutY="30.0" prefHeight="200.0" prefWidth="30.0" vbarPolicy="NEVER" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="30.0">
+        <content>
+          <AnchorPane fx:id="rulerV" minHeight="0.0" minWidth="0.0" prefHeight="200.0" prefWidth="30.0" />
+        </content>
+      </ScrollPane>
+      <ScrollPane fx:id="scollCanvas" layoutX="-166.0" layoutY="-86.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
+        <content>
+          <AnchorPane fx:id="anchorCanvas" minHeight="0.0" minWidth="0.0" prefHeight="200.0" prefWidth="200.0" />
+        </content>
+      </ScrollPane>
+   </children>
+</AnchorPane>
