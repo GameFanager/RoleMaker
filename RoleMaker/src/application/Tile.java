@@ -2,6 +2,6 @@ package application;
 
 public class Tile {
 
-	public static enum Shape{SQUARE, HEX};
+	public static enum Type{SQUARE, HEX};
 	
 }

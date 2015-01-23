@@ -13,8 +13,7 @@ public class MapController {
 	public void displayGUI(){
 		gui = new GUI();
 		guiThread= new Thread(gui);
-		gui.run();
-	}
-	
+		guiThread.start();
+	}	
 	
 }
