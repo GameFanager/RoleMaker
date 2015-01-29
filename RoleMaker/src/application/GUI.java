@@ -139,17 +139,18 @@ public class GUI extends Application implements Runnable{
 
 			@Override
 			public void run() {
-//				for (int i=0; i<98; i++){
-//					for (int j=0; j<100; j++){
+				for (int i=0; i<98; i++){
+					for (int j=0; j<100; j++){
 						
-						for (int i=0; i<5; i++){
-							for (int j=0; j<5; j++){
+					//	for (int i=0; i<5; i++){
+					//		for (int j=0; j<5; j++){
 						Polygon p = getPoly();
 						//canvas.getChildren().add(p);
 						grid.add(i, j, p);
 					}
 				}
-				canvas.getChildren().addAll(grid.getAll());
+				//canvas.getChildren().addAll(grid.getAll());
+				canvas.getChildren().add(grid.getPane());
 			}
 			
 		});
@@ -169,7 +170,6 @@ public class GUI extends Application implements Runnable{
 			@Override
 			public void handle(MouseEvent arg0) {
 
-				
 			}
 			
 		});
@@ -362,6 +362,7 @@ public class GUI extends Application implements Runnable{
 	
 	class PolyList extends HashMap<String,Shape>{
 		
+		private Pane p;
 		private static final long serialVersionUID = 1L;
 		private SimpleDoubleProperty xOff, yOff;
 		private boolean	jig = false;
@@ -381,6 +382,11 @@ public class GUI extends Application implements Runnable{
 			setJig(jig);
 			bufL = 0.0;
 			bufT = 0.0;
+			p = new Pane();
+		}
+		
+		public Pane getPane(){
+			return p;
 		}
 		
 		public void setShiftOnEven(boolean even){
@@ -394,16 +400,16 @@ public class GUI extends Application implements Runnable{
 		public boolean isShiftOnEven(){return line==0;}
 		
 		public void addOffSet(double x,double y){
-			xOff.set(xOff.get()+x);
-			yOff.set(yOff.get()+y);
+			setXoffSet(getXoffSet()+x);
+			setYoffSet(getYoffSet()+y);
 		}
 		public void setOffSet(Double x, Double y){
-			xOff.set(x);
-			yOff.set(y);
+			setXoffSet(x);
+			setYoffSet(y);
 		}
 		
-		public void setYoffSet(Double n){yOff.set(n);}
-		public void setXoffSet(Double n){xOff.set(n);}
+		public void setYoffSet(Double n){yOff.set(n); adjustNode();}
+		public void setXoffSet(Double n){xOff.set(n); adjustNode();}
 		
 		public double getYoffSet(){return yOff.get();}
 		public double getXoffSet(){return xOff.get();}
@@ -411,27 +417,27 @@ public class GUI extends Application implements Runnable{
 		public ReadOnlyDoubleProperty xOffset(){return ReadOnlyDoubleProperty.readOnlyDoubleProperty(xOff);}
 		public ReadOnlyDoubleProperty yOffset(){return ReadOnlyDoubleProperty.readOnlyDoubleProperty(yOff);}
 		
-		public void setBufLeft(Double l){bufL = l;}
-		public void setBufTop(Double t){bufT = t;}
+		public void setBufLeft(Double l){bufL = l; adjustNode();}
+		public void setBufTop(Double t){bufT = t; adjustNode();}
 		
 		public void setJig(boolean jig){
 			this.jig = jig;
 			if (jig) {h=7.5;}else{h=10;}
-			}
+		}
 		public boolean isJigged(){return jig;}
 		
-		private String genName(double x, double y){
-			return (x+xOff.get())+"/"+(y+yOff.get());}
+		private String genName(double x, double y){return (x+xOff.get())+"/"+(y+yOff.get());}
+		
 		private Shape translate(double x, double y, Shape s){
 			double shift = 0.0;
 			if (jig && (y%2==line)){
 				shift = 0.5;
 			}
-			s.setTranslateX(w*(x+xOff.get()+shift)+bufL);
-			s.setTranslateY(h*(y+yOff.get())+bufT);
+			s.setTranslateX(w*(x+shift));
+			s.setTranslateY(h*(y));
 			return s;
 		}
-		public void add(double x, double y, Shape s){s.setId(genName(x,y));this.put(genName(x,y), translate(x,y,s)); s.setOnMouseClicked(clicked);}
+		public void add(double x, double y, Shape s){s.setId(genName(x,y));this.put(genName(x,y), translate(x,y,s)); s.setOnMouseClicked(clicked); p.getChildren().add(s);}
 		public Shape get(double x,double y){ return this.get(genName(x,y));}
 		public void remove(double x, double y){Shape s = this.get(x, y); this.remove(s);}
 		public void replace(double x, double y, Shape s){ this.remove(x, y); this.add(x, y, s);}
@@ -443,6 +449,11 @@ public class GUI extends Application implements Runnable{
 				l.add(this.get(s));
 			}
 			return l;
+		}
+		
+		private void adjustNode(){
+			p.setTranslateX(getXoffSet()+bufL);
+			p.setTranslateY(getYoffSet()+bufT);
 		}
 		
 	}
