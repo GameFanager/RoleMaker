@@ -1,7 +1,6 @@
 package application;
 
 import java.util.HashMap;
-import java.util.Set;
 
 import application.Tile.Type;
 import javafx.application.Application;
@@ -10,25 +9,21 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.effect.BoxBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
@@ -69,6 +64,9 @@ public class GUI extends Application implements Runnable{
 	};
 	private PolyList grid; 
 	
+	private static Shape s;
+	private static Color mainColor = Color.DARKGRAY;
+	private static Color clickedColor = Color.DARKBLUE;
 	
 	public void setShape(Tile.Type s){
 		if (s==Type.HEX){
@@ -101,8 +99,8 @@ public class GUI extends Application implements Runnable{
 	private Polygon getPoly(){
 		Polygon p = new Polygon();
 		p.getPoints().addAll(points);
-		p.setFill(null);
-		p.setStroke(Color.DARKGRAY);
+		p.setFill(Color.TRANSPARENT);
+		p.setStroke(mainColor);
 		p.setStrokeWidth(1.0);
 		return p;
 	}
@@ -113,7 +111,8 @@ public class GUI extends Application implements Runnable{
 		
 		grid = new PolyList();
 		//grid.setOffSet(10.0, 10.0);
-		grid.setBufLeft(5.0);
+		grid.setBufLeft(7.5);
+		grid.setBufTop(7.5);
 	}
 	
 	@Override
@@ -135,24 +134,16 @@ public class GUI extends Application implements Runnable{
 		
 		setupRulers();
 		setupZoom();
-
-//		Polygon poly = new Polygon();
-//		poly.getPoints().setAll(new Double[]{
-//				0.0,0.0,
-//				1.0,0.0,
-//				1.0,1.0,
-//				0.0,1.0
-//					});
-//
-//		canvas.getChildren().add(poly);
-//		grid.add(0, 0, poly);
-//		
+		
 		Platform.runLater(new Runnable(){
 
 			@Override
 			public void run() {
-				for (int i=0; i<99; i++){
-					for (int j=0; j<100; j++){
+//				for (int i=0; i<98; i++){
+//					for (int j=0; j<100; j++){
+						
+						for (int i=0; i<5; i++){
+							for (int j=0; j<5; j++){
 						Polygon p = getPoly();
 						//canvas.getChildren().add(p);
 						grid.add(i, j, p);
@@ -163,25 +154,6 @@ public class GUI extends Application implements Runnable{
 			
 		});
 
-		
-//		Polygon p = getPoly();
-//		p.setStroke(Color.RED);
-//		canvas.getChildren().add(p);	
-//		grid.add(0, 0, p);
-//		
-//		p = getPoly();
-//		p.setStroke(Color.BLUE);
-//		canvas.getChildren().add(p);	
-//		grid.add(1, 0, p);
-//		
-//		p = getPoly();
-//		p.setStroke(Color.GREEN);
-//		canvas.getChildren().add(p);	
-//		grid.add(1, 1, p);
-
-		
-		
-		
 		Line l = new Line();
 		l.setStartX(0);
 		l.setEndX(10);
@@ -325,7 +297,7 @@ public class GUI extends Application implements Runnable{
 			
 		});
 		
-
+		
 	}
 	
 	private void setupZoom(){
@@ -385,17 +357,17 @@ public class GUI extends Application implements Runnable{
 //		
 //	}
 	
+	private static Shape getShape(){return s;}
+	private static void setShape(Shape n){s = n;}
 	
 	class PolyList extends HashMap<String,Shape>{
-		
-		
 		
 		private static final long serialVersionUID = 1L;
 		private SimpleDoubleProperty xOff, yOff;
 		private boolean	jig = false;
 		private int line = 0;
 		private double w, h, bufL, bufT;
-		
+		private ShapeClicked clicked = new ShapeClicked();
 		
 		public PolyList(){ this(0.0,0.0, false);}
 		public PolyList(double x, double y){ this(x,y,false);}
@@ -459,7 +431,7 @@ public class GUI extends Application implements Runnable{
 			s.setTranslateY(h*(y+yOff.get())+bufT);
 			return s;
 		}
-		public void add(double x, double y, Shape s){s.setId(genName(x,y));this.put(genName(x,y), translate(x,y,s));}
+		public void add(double x, double y, Shape s){s.setId(genName(x,y));this.put(genName(x,y), translate(x,y,s)); s.setOnMouseClicked(clicked);}
 		public Shape get(double x,double y){ return this.get(genName(x,y));}
 		public void remove(double x, double y){Shape s = this.get(x, y); this.remove(s);}
 		public void replace(double x, double y, Shape s){ this.remove(x, y); this.add(x, y, s);}
@@ -473,6 +445,24 @@ public class GUI extends Application implements Runnable{
 			return l;
 		}
 		
+	}
+	
+	private static class ShapeClicked implements EventHandler<MouseEvent>{
+
+		@Override
+		public void handle(MouseEvent a) {
+			if (a.getSource().getClass()!=Polygon.class){System.out.println(a.getSource().getClass()); return;}
+			
+			Shape s = getShape();
+			if (s!=null){
+				s.setStroke(mainColor);
+			}
+			
+			s = (Shape) a.getSource();
+			s.setStroke(clickedColor);
+			s.toFront();
+			setShape(s);
+		}
 		
 	}
 }
