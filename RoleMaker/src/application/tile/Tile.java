@@ -1,4 +1,4 @@
-package application;
+package application.tile;
 
 public class Tile {
 

@@ -6,19 +6,19 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane fx:id="anchorMain" prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <children>
       <ScrollPane fx:id="scrollH" focusTraversable="false" hbarPolicy="ALWAYS" layoutX="-18.0" layoutY="-86.0" pannable="true" prefHeight="30.0" prefWidth="200.0" vbarPolicy="NEVER" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="13.0" AnchorPane.topAnchor="0.0">
         <content>
           <AnchorPane fx:id="rulerH" minHeight="0.0" minWidth="0.0" prefHeight="30.0" prefWidth="200.0" style="-fx-background-color: white;" />
         </content>
       </ScrollPane>
-      <ScrollPane fx:id="scrollV" focusTraversable="false" hbarPolicy="NEVER" layoutX="-86.0" layoutY="30.0" pannable="true" prefHeight="200.0" prefWidth="30.0" vbarPolicy="ALWAYS" AnchorPane.bottomAnchor="13.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="30.0">
+      <ScrollPane fx:id="scrollV" focusTraversable="false" hbarPolicy="NEVER" layoutX="-86.0" layoutY="30.0" pannable="true" prefHeight="200.0" prefWidth="30.0" vbarPolicy="ALWAYS" AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="30.0">
         <content>
           <AnchorPane fx:id="rulerV" minHeight="0.0" minWidth="0.0" prefHeight="200.0" prefWidth="30.0" style="-fx-background-color: white;" />
         </content>
       </ScrollPane>
-      <ScrollPane fx:id="scrollCanvas" hbarPolicy="ALWAYS" layoutX="-166.0" layoutY="-86.0" prefHeight="200.0" prefWidth="200.0" vbarPolicy="ALWAYS" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
+      <ScrollPane fx:id="scrollCanvas" hbarPolicy="ALWAYS" layoutX="-166.0" layoutY="-86.0" prefHeight="200.0" prefWidth="200.0" vbarPolicy="ALWAYS" AnchorPane.bottomAnchor="15.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
          <content>
             <Group>
                <children>
@@ -27,5 +27,7 @@
             </Group>
          </content>
       </ScrollPane>
+      <Label fx:id="lblCPos" layoutX="30.0" layoutY="587.0" text="lblCPos" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" />
+      <Label fx:id="lblSPos" layoutX="135.0" layoutY="587.0" text="Selected: NA" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="135.0" />
    </children>
 </AnchorPane>

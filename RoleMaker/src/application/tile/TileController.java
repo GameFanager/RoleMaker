@@ -1,12 +1,13 @@
-package application;
+package application.tile;
 
-public class MapController {
+import application.tile.GUI;
+
+public class TileController {
 
 	private Thread guiThread; 
 	private GUI gui;
 	
-	
-	public MapController(String[] args){
+	public TileController(String[] args){
 		GUI.setArgs(args);
 	}
 	
@@ -14,6 +15,6 @@ public class MapController {
 		gui = new GUI();
 		guiThread= new Thread(gui);
 		guiThread.start();
+		System.out.println("Tiles Made");
 	}	
-	
 }
