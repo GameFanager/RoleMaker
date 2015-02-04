@@ -1,20 +1,46 @@
 package application.tile;
 
-import application.tile.GUI;
+import application.Main;
+import application.base.Controller;
+import application.tile.TileGUI;
 
-public class TileController {
+public class TileController extends Controller{
 
-	private Thread guiThread; 
-	private GUI gui;
+	private TileGUI gui;
 	
-	public TileController(String[] args){
-		GUI.setArgs(args);
+	public TileController(){
+		
 	}
 	
-	public void displayGUI(){
-		gui = new GUI();
-		guiThread= new Thread(gui);
-		guiThread.start();
-		System.out.println("Tiles Made");
+	@Override
+	public void makeGUI(){
+		try{
+			gui = new TileGUI();
+			showGui();
+			Main.addGUI(gui);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+
+
+	@Override
+	public void hideGui() {
+		gui.hide();
+	}
+
+
+
+	@Override
+	public void showGui() {
+		gui.show();
+	}
+
+
+
+	@Override
+	public boolean isGuiShowing() {
+		return gui.isShowing();
 	}	
 }

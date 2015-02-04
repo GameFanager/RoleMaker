@@ -1,30 +1,55 @@
 package application.map;
 
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.EventHandler;
+import javafx.scene.input.MouseEvent;
 import application.Main;
-import application.map.GUI;
+import application.base.Controller;
+import application.map.MapGUI;
 
-public class MapController{
+public class MapController extends Controller{
 
-	private Thread guiThread; 
-	private GUI gui;
+	private MapGUI gui;
 	
-	public MapController(String[] args){
-		GUI.setArgs(args);
+	public MapController(){
+		
 	}
 	
-	public void displayGUI(){
-		gui = new GUI();
-		guiThread= new Thread(gui);
-		guiThread.start();
-		try {
-			gui.wait();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+	@Override
+	public void makeGUI(){
+		try{
+			gui = new MapGUI();
+			showGui();
+			Main.addGUI(gui);
+		}catch(Exception e){
 			e.printStackTrace();
 		}
-
 	}	
+	
+	@Override
+	public void hideGui() {
+		gui.hide();		
+	}
+
+	@Override
+	public void showGui() {
+		gui.show();
+		
+	}
+
+	@Override
+	public boolean isGuiShowing() {
+		return gui.isShowing();
+	}
+	
+	private class MapShapeDropped implements EventHandler<MouseEvent>{
+		@Override
+		public void handle(MouseEvent me) {
+			
+			//gui.shapeDropped(dropped);
+			
+		}
+	}
+	
+	
 }
 

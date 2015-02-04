@@ -2,6 +2,8 @@ package application.map;
 
 import java.util.HashMap;
 
+import application.base.GUI;
+import application.base.ShapeDropable;
 import application.map.Page.Unit;
 import application.tile.Tile;
 import application.tile.Tile.Type;
@@ -18,6 +20,7 @@ import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -28,12 +31,12 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Shape;
 import javafx.stage.Stage;
 
-public class GUI extends Application implements Runnable{
-	private static String[] args;
+public class MapGUI extends GUI implements  ShapeDropable{
 	@FXML
 	private ScrollPane scrollV, scrollH, scrollCanvas;
 	@FXML
@@ -44,34 +47,20 @@ public class GUI extends Application implements Runnable{
 	private Label lblCPos, lblSPos;
 	
 	
-	private Stage stage;
-	
 	private SimpleBooleanProperty rulerVisible;
 	private static final int rulerThickness = 30;
 
 	private SimpleDoubleProperty zoomLevel;
 
-	public boolean isShowing(){	return stage.isShowing();}
-	public ReadOnlyBooleanProperty showingProperty(){return stage.showingProperty();}
-	
 	private boolean scroll = true;
 	private boolean zoom = false;
 	private static final Double zoomAmount = 0.1;
-	private Double[] points = { 
-		5.0,0.0,
-		10.0,2.5,
-		10.0,7.5,
-		5.0,10.0,
-		0.0,7.5,
-		0.0,2.5
-	};
-	private PolyList grid; 
+	private Double[] points;
+	private PolyList grid, map; 
 	
 	private Shape shapeSelected;
 	private SimpleStringProperty shapeHoveredXY;
 	private Page page;
-	
-	
 	
 	public void setShape(Tile.Type s){
 		if (s==Type.HEX){
@@ -86,6 +75,7 @@ public class GUI extends Application implements Runnable{
 			grid.setJig(true);
 			grid.setShiftOnEven(true);
 		}else{
+			System.out.println("shape is not hex");
 			points = new Double[]{
 					0.0,0.0,
 					10.0,0.0,
@@ -94,11 +84,11 @@ public class GUI extends Application implements Runnable{
 			};
 			grid.setJig(false);
 		}
-	}
-	
-	
-	public static void setArgs(String[] arg){
-		args = arg;
+		
+		for (double d:points){
+			System.out.print(d+",");
+		}
+		
 	}
 	
 	private Polygon getPoly(){
@@ -106,29 +96,24 @@ public class GUI extends Application implements Runnable{
 		return p;
 	}
 	
-	public GUI(){
+	@Override
+	protected void init() {
 		shapeHoveredXY = new SimpleStringProperty();
 		grid = new PolyList();
+		grid.setClickedListener(new GridShapeClicked());
+		grid.setHoverListener(new GridShapeHovered());
 		page = new Page();
+		
+	}
+	
+	public MapGUI() throws Exception{
+		super("MapGUI.fxml");
 	}
 	
 	@Override
-	public void start(Stage stage) throws Exception {
+	protected void create(){
 		setShape(Type.HEX);
 //		setShape(Type.SQUARE);
-		this.stage = stage;
-		Region root = null;
-		try {
-			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("GUI.fxml"));
-			fxmlLoader.setController(this);
-			root = (Region) fxmlLoader.load();
-		} catch (Exception ex) {
-		    ex.printStackTrace();
-		}
-		Scene scene = new Scene(root);
-		stage.setScene(scene);
-		stage.show();
-		
 		setupRulers();
 		setupZoom();
 		setRulerVisiblity(false);
@@ -140,6 +125,8 @@ public class GUI extends Application implements Runnable{
 			public void run() {
 				grid.fill(page, 40,62);
 				canvas.getChildren().add(grid.getGroup());
+				map = grid.clone();
+				canvas.getChildren().add(map.getGroup());
 			}
 			
 		});
@@ -149,8 +136,12 @@ public class GUI extends Application implements Runnable{
 			@Override
 			public void handle(MouseEvent arg0) {
 
+				Polygon p = getPoly();
+				p.setFill(Color.ALICEBLUE);
+				
+				shapeDropped(p);
 			}
-			
+		
 		});
 		
 		canvas.setOnScroll(new EventHandler<ScrollEvent>(){
@@ -203,13 +194,9 @@ public class GUI extends Application implements Runnable{
 			}
 			
 		});
-		
-		lblCPos.textProperty().bind(shapeHoveredXY);
-		
 	}
 
 	public void setRulerVisiblity(boolean vis){rulerVisible.setValue(vis);}
-		
 	
 	private void setupRulers(){
 		rulerVisible = new SimpleBooleanProperty(true);
@@ -261,7 +248,7 @@ public class GUI extends Application implements Runnable{
 
 		System.out.println((scrollCanvas.getWidth()-canvas.getWidth())/2);
 		
-		stage.widthProperty().addListener(new ChangeListener<Number>(){
+		this.widthProperty().addListener(new ChangeListener<Number>(){
 
 			@Override
 			public void changed(ObservableValue<? extends Number> observable,
@@ -271,7 +258,7 @@ public class GUI extends Application implements Runnable{
 			
 		});
 		
-		stage.heightProperty().addListener(new ChangeListener<Number>(){
+		this.heightProperty().addListener(new ChangeListener<Number>(){
 
 			@Override
 			public void changed(ObservableValue<? extends Number> observable,
@@ -290,14 +277,7 @@ public class GUI extends Application implements Runnable{
 		rulerH.scaleXProperty().bind(zoomLevel);
 		rulerV.scaleYProperty().bind(zoomLevel);
 	}
-	
-	
-	@Override
-	public void run() {
-		launch(args);
-	}
-	
-	
+		
 	private class rulerVisChange implements ChangeListener<Boolean>{
 		@Override
 		public void changed(ObservableValue<? extends Boolean> arg0,
@@ -343,7 +323,20 @@ public class GUI extends Application implements Runnable{
 		lblSPos.setText("Selected: "+ id);
 	}
 	
-	private void setShapeHoveredXY(String s){shapeHoveredXY.setValue("  Mouse over: "+s);}
+	private void setShapeHoveredXY(String s){
+		shapeHoveredXY.setValue(s);
+		lblCPos.setText(" Mouse over: "+s);
+	}
+	
+	private double[] breakTileName(String s){
+		double x = Double.valueOf(s.substring(0, s.indexOf("/")));
+		double y = Double.valueOf(s.substring(s.indexOf("/")+1));
+		return new double[] {x,y};
+	}
+	
+		
+	
+	private String createTileName(Double x, Double y){return (x)+"/"+(y);}
 	
 	class PolyList extends HashMap<String,Shape>{
 		
@@ -353,8 +346,8 @@ public class GUI extends Application implements Runnable{
 		private int line = 0;
 		private SimpleDoubleProperty w, h, bufL, bufT, scale;
 
-		private ShapeClicked clicked = new ShapeClicked();
-		private ShapeHovered hover = new ShapeHovered();
+		private EventHandler<MouseEvent> clicked;
+		private EventHandler<MouseEvent> hover;
 		public PolyList(){ this(false);}
 		
 		public PolyList(boolean jig){
@@ -402,12 +395,12 @@ public class GUI extends Application implements Runnable{
 			if (jig){
 				nx += s*h.get()*0.5;
 			}
-			setBufLeft((page.getWidth(Unit.pt)-nx)/2);
+			bufferLeftProperty().set((page.getWidth(Unit.pt)-nx)/2);
 			
 			if ((h.get()*s)<=(page.getHeight(Unit.pt)-ny)/2){
-				setBufTop(h.get()*s);
+				bufferTopProperty().set(h.get()*s);
 			}else{
-				setBufTop((page.getHeight(Unit.pt)-ny)/2);
+				bufferTopProperty().set((page.getHeight(Unit.pt)-ny)/2);
 			}
 			return true;
 		}
@@ -419,8 +412,6 @@ public class GUI extends Application implements Runnable{
 		public double getScale(){
 			return scale.get();
 		}
-		
-		public SimpleDoubleProperty scaleProperty(){ return scale;}
 		
 		public void setShiftOnEven(boolean even){
 			if (even){
@@ -435,12 +426,17 @@ public class GUI extends Application implements Runnable{
 		public double getBufferTop(){return bufT.get();}
 		public double getBufferLeft(){return bufL.get();}
 		
-		
 		public void setBufLeft(Double l){bufL.setValue(l);}
 		public void setBufTop(Double t){bufT.setValue(t);}
 		
-		public SimpleDoubleProperty bufferLeft(){return bufL;}
-		public SimpleDoubleProperty bufferTop(){return bufT;}
+		public void setClickedListener(EventHandler<MouseEvent> clicked){this.clicked= clicked;}
+		public void setHoverListener(EventHandler<MouseEvent> hover){this.hover = hover;}
+		
+		public SimpleDoubleProperty bufferLeftProperty(){return bufL;}
+		public SimpleDoubleProperty bufferTopProperty(){return bufT;}
+		public SimpleDoubleProperty shapeHeightProperty(){return h;}
+		public SimpleDoubleProperty shapeWidthProperty(){return w;}
+		public SimpleDoubleProperty scaleProperty(){ return scale;}
 		
 		public void setJig(boolean jig){
 			this.jig = jig;
@@ -448,7 +444,8 @@ public class GUI extends Application implements Runnable{
 		}
 		public boolean isJigged(){return jig;}
 		
-		private String genName(double x, double y){return (x)+"/"+(y);}
+		private String genName(double x, double y){return createTileName(x,y);}
+			//return (x)+"/"+(y);}
 		
 		public Shape getFromId(String s){
 			return this.get(s);
@@ -477,6 +474,8 @@ public class GUI extends Application implements Runnable{
 		public Shape get(double x,double y){ return this.get(genName(x,y));}
 		public void remove(double x, double y){Shape s = this.get(x, y); s.setOnMouseClicked(null); s.setOnMouseEntered(null);this.remove(s);}
 		public void replace(double x, double y, Shape s){ this.remove(x, y); this.add(x, y, s);}
+		public boolean existsAt(double x, double y){return this.containsKey(genName(x,y));}
+		
 		
 		public ObservableList<Shape> getAll(){
 			ObservableList<Shape> l = FXCollections.observableArrayList();
@@ -487,36 +486,74 @@ public class GUI extends Application implements Runnable{
 			return l;
 		}
 		
-		private class ShapeClicked implements EventHandler<MouseEvent>{
-			@Override
-			public void handle(MouseEvent a) {
-				if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(Shape.class.isAssignableFrom(a.getSource().getClass())); return;}
-				Shape s = getShapeSelected();
-				if (s!=null){
-					s.setStroke(Poly.getMainBorder());
-					s.setFill(Poly.getMainFill());
-				}
-
-				if (s==a.getSource()){setShapeSelected(null); return;}
-				
-				s = (Shape) a.getSource();
-				s.setStroke(Poly.getClickedBorder());
-				s.setFill(Poly.getClickedFill());
-				s.toFront();
-				setShapeSelected(s);
-			}
+		public PolyList clone(){
+			PolyList c = new PolyList();
+			c.bufferLeftProperty().bindBidirectional(this.bufferLeftProperty());
+			c.bufferTopProperty().bindBidirectional(this.bufferTopProperty());
+			c.shapeHeightProperty().bindBidirectional(this.shapeHeightProperty());
+			c.shapeWidthProperty().bindBidirectional(this.shapeWidthProperty());
+			c.scaleProperty().bindBidirectional(this.scaleProperty());
+			
+			c.setJig(this.isJigged());
+			c.setShiftOnEven(this.isShiftOnEven());
+			return c;
 		}
 		
-		private class ShapeHovered implements EventHandler<MouseEvent>{
-			@Override
-			public void handle(MouseEvent a) {
-				if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(a.getSource().getClass()); return;}
-				
-				setShapeHoveredXY(((Shape) a.getSource()).getId());
-			}
+		public String toString(){
+			return "leftB: "+bufferLeftProperty().doubleValue() +" topB: "+bufferTopProperty().doubleValue() + " shapeH: "+shapeHeightProperty().doubleValue() + " shapeW: "+shapeWidthProperty().doubleValue() +
+					" scale: "+scaleProperty().doubleValue() + " jigged: "+ this.isJigged()+ " shifted: " + isShiftOnEven() +" size: "+this.size();
 		}
+		
+		
 		
 	}
+	private class GridShapeClicked implements EventHandler<MouseEvent>{
+		@Override
+		public void handle(MouseEvent a) {
+			if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(Shape.class.isAssignableFrom(a.getSource().getClass())); return;}
+			Shape s = getShapeSelected();
+			if (s!=null){
+				s.setStroke(Poly.getMainBorder());
+				s.setFill(Poly.getMainFill());
+			}
+
+			if (s==a.getSource()){setShapeSelected(null); return;}
+			
+			s = (Shape) a.getSource();
+			s.setStroke(Poly.getClickedBorder());
+			s.setFill(Poly.getClickedFill());
+			s.toFront();
+			setShapeSelected(s);
+		}
+	}
+	
+	private class GridShapeHovered implements EventHandler<MouseEvent>{
+		@Override
+		public void handle(MouseEvent a) {
+			if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(a.getSource().getClass()); return;}
+			setShapeHoveredXY(((Shape) a.getSource()).getId());
+		}
+	}
+
+	@Override
+	public void shapeDropped(Shape dropped) {
+		double[] xy = breakTileName(shapeHoveredXY.get());
+		if (!map.existsAt(xy[0], xy[1])){
+		map.add(xy[0],xy[1], dropped);
+		System.out.println(shapeHoveredXY.get());
+		System.out.println("Map: "+map.toString());
+		System.out.println("Grid: "+grid.toString());
+		canvas.requestLayout();
+		}
+	}
+
+	@Override
+	protected Node getDroppedItem() {
+		return shapeSelected;
+	}
+
+
+
 
 
 }
