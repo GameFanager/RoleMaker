@@ -1,5 +1,7 @@
 package application.tile;
 
+import javafx.geometry.Rectangle2D;
+import javafx.stage.Screen;
 import application.Main;
 import application.base.Controller;
 import application.tile.TileGUI;
@@ -17,7 +19,13 @@ public class TileController extends Controller{
 		try{
 			gui = new TileGUI();
 			showGui();
-			Main.addGUI(gui);
+			
+			double h = gui.getHeight();
+			Rectangle2D sb = Screen.getPrimary().getBounds();
+			
+			gui.setX(50);
+			gui.setY((sb.getHeight()-h)/5);
+			
 		}catch(Exception e){
 			e.printStackTrace();
 		}

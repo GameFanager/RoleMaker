@@ -2,16 +2,18 @@ package application.map;
 
 import java.util.HashMap;
 
+import com.sun.glass.ui.Window;
+import com.sun.javafx.collections.ObservableMapWrapper;
+
 import application.base.GUI;
 import application.base.ShapeDropable;
 import application.map.Page.Unit;
 import application.tile.Tile;
 import application.tile.Tile.Type;
-import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,22 +21,21 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.DragEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Shape;
-import javafx.stage.Stage;
 
 public class MapGUI extends GUI implements  ShapeDropable{
 	@FXML
@@ -45,7 +46,6 @@ public class MapGUI extends GUI implements  ShapeDropable{
 	private AnchorPane canvas, anchorMain;
 	@FXML
 	private Label lblCPos, lblSPos;
-	
 	
 	private SimpleBooleanProperty rulerVisible;
 	private static final int rulerThickness = 30;
@@ -59,7 +59,8 @@ public class MapGUI extends GUI implements  ShapeDropable{
 	private PolyList grid, map; 
 	
 	private Shape shapeSelected;
-	private SimpleStringProperty shapeHoveredXY;
+	private Shape shapeHovered;
+	private Shape shapeDragHovered;
 	private Page page;
 	
 	public void setShape(Tile.Type s){
@@ -75,7 +76,6 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			grid.setJig(true);
 			grid.setShiftOnEven(true);
 		}else{
-			System.out.println("shape is not hex");
 			points = new Double[]{
 					0.0,0.0,
 					10.0,0.0,
@@ -84,11 +84,6 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			};
 			grid.setJig(false);
 		}
-		
-		for (double d:points){
-			System.out.print(d+",");
-		}
-		
 	}
 	
 	private Polygon getPoly(){
@@ -97,11 +92,14 @@ public class MapGUI extends GUI implements  ShapeDropable{
 	}
 	
 	@Override
+	public TYPE getType(){return TYPE.DISPLAY;}
+	
+	@Override
 	protected void init() {
-		shapeHoveredXY = new SimpleStringProperty();
 		grid = new PolyList();
-		grid.setClickedListener(new GridShapeClicked());
-		grid.setHoverListener(new GridShapeHovered());
+		grid.setClickedHandler(new GridShapeClicked());
+		grid.setHoverHandler(new GridShapeHovered());
+		grid.setDragHandler(new GridShapeDragEntered(), new GridShapeDragExit());
 		page = new Page();
 		
 	}
@@ -126,7 +124,10 @@ public class MapGUI extends GUI implements  ShapeDropable{
 				grid.fill(page, 40,62);
 				canvas.getChildren().add(grid.getGroup());
 				map = grid.clone();
+				map.getGroup().setPickOnBounds(false);
+				
 				canvas.getChildren().add(map.getGroup());
+				
 			}
 			
 		});
@@ -135,11 +136,16 @@ public class MapGUI extends GUI implements  ShapeDropable{
 
 			@Override
 			public void handle(MouseEvent arg0) {
-
-				Polygon p = getPoly();
-				p.setFill(Color.ALICEBLUE);
+				MouseButton mb = arg0.getButton();
 				
-				shapeDropped(p);
+				if (mb==MouseButton.SECONDARY){
+					Polygon p = getPoly();
+					p.setFill(Color.ALICEBLUE);
+					shapeDropped(p);
+				}else if(mb==MouseButton.MIDDLE){
+					System.out.println("Middle");
+					deleteSelectedShape();
+				}
 			}
 		
 		});
@@ -163,8 +169,16 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			}
 			
 		});
-		
 
+		canvas.setOnDragOver(new EventHandler<DragEvent>(){
+			@Override
+			public void handle(DragEvent event) {
+				event.acceptTransferModes(TransferMode.ANY);
+			}
+			
+		});
+		
+		
 		scrollCanvas.setOnKeyPressed(new EventHandler<KeyEvent>(){
 
 			@Override
@@ -246,8 +260,6 @@ public class MapGUI extends GUI implements  ShapeDropable{
 		
 		scrollCanvas.requestFocus();
 
-		System.out.println((scrollCanvas.getWidth()-canvas.getWidth())/2);
-		
 		this.widthProperty().addListener(new ChangeListener<Number>(){
 
 			@Override
@@ -315,40 +327,63 @@ public class MapGUI extends GUI implements  ShapeDropable{
 		}
 	}
 	
-	private  Shape getShapeSelected(){return shapeSelected;}
-	private  void setShapeSelected(Shape n){
-		shapeSelected = n; 
-		String id = "NA";
-		if (n!=null)	id = n.getId();
+	private  void setShapeSelected(Shape s){
+		shapeSelected = s; 
+		String id = "N/A";
+		if (s!=null)	id = s.getId();
 		lblSPos.setText("Selected: "+ id);
 	}
 	
-	private void setShapeHoveredXY(String s){
-		shapeHoveredXY.setValue(s);
-		lblCPos.setText(" Mouse over: "+s);
+	private  Shape getShapeSelected(){return shapeSelected;}
+	
+	private void setShapeHovered(Shape s){
+		shapeHovered = s;
+		String txt = "N/A";
+		if (s!=null) txt = s.getId();
+		lblCPos.setText(" Mouse over: "+txt);
+	}
+	private Shape getShapeHovered(){return shapeHovered;}
+	
+	private void setShapeDragHovered(Shape s){
+		shapeDragHovered = s;
 	}
 	
-	private double[] breakTileName(String s){
-		double x = Double.valueOf(s.substring(0, s.indexOf("/")));
-		double y = Double.valueOf(s.substring(s.indexOf("/")+1));
-		return new double[] {x,y};
-	}
+	private Shape getShapeDragHovered(){ return shapeDragHovered;}
 	
-		
+	
+	
+	private Double[] breakTileName(String s){
+		if (!(s==null || s.equals(""))){
+			try{
+				double x = Double.valueOf(s.substring(0, s.indexOf("/")));
+				double y = Double.valueOf(s.substring(s.indexOf("/")+1));
+				return new Double[] {x,y};
+			}catch(Exception e){
+				System.out.println("Not a polyList grid id");
+			}
+		}
+		return null;
+	}
 	
 	private String createTileName(Double x, Double y){return (x)+"/"+(y);}
 	
 	class PolyList extends HashMap<String,Shape>{
 		
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 2135008558033062520L;
 		private Pane g;
-		private static final long serialVersionUID = 1L;
 		private boolean	jig = false;
 		private int line = 0;
 		private SimpleDoubleProperty w, h, bufL, bufT, scale;
 
 		private EventHandler<MouseEvent> clicked;
 		private EventHandler<MouseEvent> hover;
+		private EventHandler<DragEvent> dragEnter;
+		private EventHandler<DragEvent> dragExit;
 		public PolyList(){ this(false);}
+		
 		
 		public PolyList(boolean jig){
 			w = new SimpleDoubleProperty(10.0);
@@ -402,6 +437,9 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			}else{
 				bufferTopProperty().set((page.getHeight(Unit.pt)-ny)/2);
 			}
+			
+			g.setPickOnBounds(true);
+			
 			return true;
 		}
 		
@@ -429,8 +467,9 @@ public class MapGUI extends GUI implements  ShapeDropable{
 		public void setBufLeft(Double l){bufL.setValue(l);}
 		public void setBufTop(Double t){bufT.setValue(t);}
 		
-		public void setClickedListener(EventHandler<MouseEvent> clicked){this.clicked= clicked;}
-		public void setHoverListener(EventHandler<MouseEvent> hover){this.hover = hover;}
+		public void setClickedHandler(EventHandler<MouseEvent> clicked){this.clicked= clicked;}
+		public void setHoverHandler(EventHandler<MouseEvent> hover){this.hover = hover;}
+		public void setDragHandler(EventHandler<DragEvent> dragEnter, EventHandler<DragEvent> dragExit){this.dragEnter = dragEnter; this.dragExit = dragExit;}
 		
 		public SimpleDoubleProperty bufferLeftProperty(){return bufL;}
 		public SimpleDoubleProperty bufferTopProperty(){return bufT;}
@@ -465,15 +504,37 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			s.setId(genName(x,y));
 			translate(x,y,s);
 			this.put(genName(x,y), s);
-			s.setOnMouseClicked(clicked);
-			s.setOnMouseEntered(hover);
+			setHandlers(s);
 			g.getChildren().add(s);
 			return true;
 		}
 		
+		private void setHandlers(Shape s){
+			s.setOnMouseClicked(clicked);
+			s.setOnMouseEntered(hover);
+			s.setOnDragEntered(dragEnter);
+			s.setOnDragExited(dragExit);
+		}
+		
+		private void clearHandlers(Shape s){
+			s.setOnMouseClicked(null);
+			s.setOnMouseEntered(null);
+			s.setOnDragEntered(null);
+			s.setOnDragExited(null);
+		}
+		
 		public Shape get(double x,double y){ return this.get(genName(x,y));}
-		public void remove(double x, double y){Shape s = this.get(x, y); s.setOnMouseClicked(null); s.setOnMouseEntered(null);this.remove(s);}
-		public void replace(double x, double y, Shape s){ this.remove(x, y); this.add(x, y, s);}
+		public void removeAt(double x, double y){
+			Shape s = this.get(x, y); 
+			if (s==null) return;
+			clearHandlers(s);
+			this.remove(s.getId()); 
+			s.setStroke(Color.TRANSPARENT);
+			s.setFill(Color.TRANSPARENT);
+			s=null;
+		}
+		
+		public void replace(double x, double y, Shape s){ this.removeAt(x, y); this.add(x, y, s);}
 		public boolean existsAt(double x, double y){return this.containsKey(genName(x,y));}
 		
 		
@@ -503,27 +564,34 @@ public class MapGUI extends GUI implements  ShapeDropable{
 			return "leftB: "+bufferLeftProperty().doubleValue() +" topB: "+bufferTopProperty().doubleValue() + " shapeH: "+shapeHeightProperty().doubleValue() + " shapeW: "+shapeWidthProperty().doubleValue() +
 					" scale: "+scaleProperty().doubleValue() + " jigged: "+ this.isJigged()+ " shifted: " + isShiftOnEven() +" size: "+this.size();
 		}
-		
-		
-		
 	}
+	
 	private class GridShapeClicked implements EventHandler<MouseEvent>{
 		@Override
 		public void handle(MouseEvent a) {
+			if (a.getButton()==MouseButton.MIDDLE) return;
 			if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(Shape.class.isAssignableFrom(a.getSource().getClass())); return;}
 			Shape s = getShapeSelected();
-			if (s!=null){
-				s.setStroke(Poly.getMainBorder());
-				s.setFill(Poly.getMainFill());
-			}
-
+			deselectShape(s);
 			if (s==a.getSource()){setShapeSelected(null); return;}
-			
 			s = (Shape) a.getSource();
-			s.setStroke(Poly.getClickedBorder());
-			s.setFill(Poly.getClickedFill());
-			s.toFront();
-			setShapeSelected(s);
+			selectShape(s);
+		}
+	}
+	
+	private class GridShapeDragEntered implements EventHandler<DragEvent>{
+		@Override
+		public void handle(DragEvent a) {
+			if(!Shape.class.isAssignableFrom(a.getSource().getClass())) return;
+			Shape s = (Shape)a.getSource();
+			setShapeDragHovered(s);
+		}
+	}
+
+	private class GridShapeDragExit implements EventHandler<DragEvent>{
+		@Override
+		public void handle(DragEvent arg0) {
+			//setShapeDragHovered(null);
 		}
 	}
 	
@@ -531,29 +599,75 @@ public class MapGUI extends GUI implements  ShapeDropable{
 		@Override
 		public void handle(MouseEvent a) {
 			if (!Shape.class.isAssignableFrom(a.getSource().getClass())){System.out.println(a.getSource().getClass()); return;}
-			setShapeHoveredXY(((Shape) a.getSource()).getId());
+			setShapeHovered((Shape) a.getSource());
 		}
+	}
+	
+	public void deselectShape(Shape s){
+		if (s!=null){
+			s.setStroke(Poly.getMainBorder());
+			s.setFill(Poly.getMainFill());
+		}
+	}
+	
+	public void selectShape(Shape s){
+		s.setStroke(Poly.getClickedBorder());
+		s.setFill(Poly.getClickedFill());
+		s.toFront();
+		setShapeSelected(s);
 	}
 
 	@Override
-	public void shapeDropped(Shape dropped) {
-		double[] xy = breakTileName(shapeHoveredXY.get());
-		if (!map.existsAt(xy[0], xy[1])){
-		map.add(xy[0],xy[1], dropped);
-		System.out.println(shapeHoveredXY.get());
-		System.out.println("Map: "+map.toString());
-		System.out.println("Grid: "+grid.toString());
+	public void shapeDropped(Node dropped) {
+		if (dropped==null)return;
+		if(!Shape.class.isAssignableFrom(dropped.getClass())){System.out.println(dropped.getClass()); return;}
+
+		Double[] xy = getDropLocationCords();
+
+		
+		if (xy==null) xy = new Double[]{0.0,0.0};
+		
+		dropped.setMouseTransparent(true);
+		map.add(xy[0],xy[1], (Shape)dropped);
 		canvas.requestLayout();
-		}
+	}
+
+	private Double[] getHoveredCords(){
+		Shape drag = getShapeDragHovered();
+		if (drag==null) return null;
+		return breakTileName(drag.getId());
+	}
+	
+	private Double[] getSelectedCords(){
+		Shape selected = getShapeSelected();
+		if (selected == null) return null;
+		return breakTileName(selected.getId());
+	}
+	
+	private Double[] getDropLocationCords(){
+		Double[] xy; 
+		xy = getHoveredCords();
+		if (xy!=null)return xy;
+		xy = getSelectedCords();
+		return xy;
+	}
+	
+	
+	@Override
+	public Node getDroppedItem() {
+		return getShapeSelected();
+	}
+
+	private void deleteSelectedShape(){
+		Shape s = getShapeSelected();
+		if(s == null) return;
+		Double[] xy = breakTileName(s.getId());
+		map.removeAt(xy[0],xy[1]);
+		canvas.requestLayout();
 	}
 
 	@Override
-	protected Node getDroppedItem() {
-		return shapeSelected;
+	protected void focusChanged(boolean isFocused) {
 	}
-
-
-
-
 
 }

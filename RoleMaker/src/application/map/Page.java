@@ -30,9 +30,6 @@ public class Page{
 		converSet(h,height);
 		or = ora;
 		id = String.valueOf(hashCode());
-		
-		System.out.println("Page: W: "+getWidth(Unit.mm)+"mm, "+getWidth(Unit.pt)+" H: "+getHeight(Unit.mm)+"mm, "+getHeight(Unit.pt));
-		
 	}
 	
 	public void setName(String n){
